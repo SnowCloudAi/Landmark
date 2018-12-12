@@ -13,6 +13,7 @@
 * 建议使用循环Lr
 * 除了看Loss的变换曲线，更加定性的方式是可视化boundary
 * 目前每次400epoch
+
 ![image](image/debug.png)
 
 ## Train Landmarks
