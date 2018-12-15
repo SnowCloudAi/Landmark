@@ -24,3 +24,5 @@
 * 这里使用SGD(momentum)比较好
 
 ![image](image/debug_lands.png)
+
+(fake boundary, real boundary, ground truth.)
