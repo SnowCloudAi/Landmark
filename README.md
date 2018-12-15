@@ -25,3 +25,7 @@
 ![image](image/debug_lands.png)
 
 (fake boundary, real boundary, ground truth.)
+
+## CED curves
+
+![image](image/roc_all.jpeg)
