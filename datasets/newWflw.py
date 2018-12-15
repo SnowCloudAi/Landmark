@@ -44,7 +44,8 @@ class newWflw(Dataset):
         landmark_ = np.where(landmark_ < 256, landmark_, 256.)
         heatmap = self.drawGaussian(landmark_)
 
-        return img_tensor, torch.from_numpy(heatmap).float(), torch.from_numpy(self.landmarks[index]).float()
+        # return img_tensor, torch.from_numpy(heatmap).float(), torch.from_numpy(self.landmarks[index]).float()
+        return img_tensor, torch.from_numpy(heatmap).float(), torch.from_numpy(landmark_).float()
 
 
     def drawGaussian(self, landmark):
