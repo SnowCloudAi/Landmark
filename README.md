@@ -20,7 +20,6 @@
 * 已经跑完200epoch单独训练landmarks regressor的代码
 * 没有和boundary net一起训练，考虑要不要一起finetune
 * 正常姿态的人脸已经基本可以正常输出，但特殊姿态人脸尚不完美，可能是特殊姿态人脸数据较少的原因。
-* 遮挡状态的图片还未测试，但考虑到现在的boundary net会受遮挡的影响，landmarks的输出应该也会受到影响。
 * 这里使用SGD(momentum)比较好
 
 ![image](image/debug_lands.png)
