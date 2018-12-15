@@ -199,3 +199,32 @@ def figPicture(data, heatmap, widehatHeatmap, pred_real_landmarks, pred_fake_lan
     fig = np.concatenate([line1, line2, line3, line4], axis=0)
 
     return fig * 256
+
+def plot_land(data, landmarks):
+    """
+    :param data: (256, 256)
+    :param landmarks: (196,)
+    :return: data: (256, 256)
+    """
+    data = data.copy()
+    for i in range(int(landmarks.shape[0]/2)):
+        data = cv2.circle(data, (int(landmarks[i*2]), int(landmarks[i*2+1])), 2, (1), 2, )
+    return data
+
+def figPicture2Land2(data, heatmap, widehatHeatmap, pred_fake_landmarks, pred_real_landmarks, landmarks):
+    """
+    :param data: [3, 256, 256] RGB
+    :param heatmap: [13, 64, 64]
+    :param widehatHeatmap: [13, 64, 64]
+    :param pred_fake_landmarks: (196,)
+    :param pred_real_landmarks: (196,)
+    :param landmarks: (196,)
+    :return: fig: (256*3, 256)
+    """
+    data = np.mean(np.moveaxis(data, 0, 2), axis=2, keepdims=False, dtype=np.float32)
+    data_land_fake = plot_land(data, pred_fake_landmarks)
+    data_land_real = plot_land(data, pred_real_landmarks)
+    data_land_truth = plot_land(data, landmarks)
+    fig = np.concatenate([data_land_fake, data_land_real, data_land_truth], axis=1)
+
+    return fig
