@@ -29,4 +29,4 @@
 
 ## CED curves
 
-![image](image/roc_all.jpeg)
+![image](image/ced_cruve_all.jpeg)
