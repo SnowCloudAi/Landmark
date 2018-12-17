@@ -48,10 +48,8 @@ def lrSchedule(base_lr, iter, iters, epoch=0, time=0, step=(30, 60, 90), target_
 class CycleLR:
     def __init__(self, warm_epoch, all_epoch, target_lr, iters_epoch, period=4):
         self.iter = -1
-        self.iters, self.warmIters = iters_epoch * all_epoch, iters_epoch * warm_epoch
+        self.warmIters = iters_epoch * warm_epoch
         self.target_lr = target_lr
-        self.period = period
-        self.all_epoch = all_epoch
         self.step_iters = (all_epoch - warm_epoch) // period * iters_epoch
 
     def step(self):
@@ -75,7 +73,6 @@ components = [[i for i in range(33)], [76, 87, 86, 85, 84, 83, 82], [88, 95, 94,
               [76, 77, 78, 79, 80, 81, 82], [55 + i for i in range(5)], [51 + i for i in range(4)],
               [60, 67, 66, 65, 64], [60 + i for i in range(5)], [33 + i for i in range(9)], [68, 75, 74, 73, 72],
               [68 + i for i in range(5)], [42 + i for i in range(9)]]
-
 
 def getBBox(points):
     """
@@ -186,7 +183,7 @@ def drawGaussianHeatmap(img, points, color=(25, 100, 0), sigma=4):
 def drawPoint(img, points, color=(25, 100, 0)):
     """
 
-    :param color: 
+    :param color:
     :param img: RGB Image
     :param points: list type
     :return:
@@ -196,7 +193,7 @@ def drawPoint(img, points, color=(25, 100, 0)):
     return img
 
 
-def figPicture2Land(data, heatmap, widehatHeatmap, pred_real_landmarks, pred_fake_landmarks):
+def figPicture(data, heatmap, widehatHeatmap, pred_real_landmarks, pred_fake_landmarks):
     """
 
     :param data: [3, 256, 256] RGB
@@ -210,10 +207,10 @@ def figPicture2Land(data, heatmap, widehatHeatmap, pred_real_landmarks, pred_fak
         for i in range(len(components[com])):
             p1 = components[com][i]
             heatmap[com] = cv2.circle(heatmap[com], (pred_real_landmarks[p1 * 2], pred_real_landmarks[p1 * 2 + 1]), 2,
-                                      (1), 1, )
+                                      (1), 2, )
             widehatHeatmap[com] = cv2.circle(widehatHeatmap[com],
                                              (pred_fake_landmarks[p1 * 2], pred_fake_landmarks[p1 * 2 + 1]), 2, (1),
-                                             1, )
+                                             2, )
 
     heatmap = np.moveaxis(heatmap, 0, 2).copy()
     widehatHeatmap = np.moveaxis(widehatHeatmap, 0, 2).copy()
@@ -227,25 +224,31 @@ def figPicture2Land(data, heatmap, widehatHeatmap, pred_real_landmarks, pred_fak
 
     return fig * 256
 
-
-def figPicture(data, heatmap, widehatHeatmap):
+def plot_land(data, landmarks):
     """
+    :param data: (256, 256)
+    :param landmarks: (196,)
+    :return: data: (256, 256)
+    """
+    data = data.copy()
+    for i in range(int(landmarks.shape[0]/2)):
+        data = cv2.circle(data, (int(landmarks[i*2]), int(landmarks[i*2+1])), 2, (1), 2, )
+    return data
 
+def figPicture2Land2(data, heatmap, widehatHeatmap, pred_fake_landmarks, pred_real_landmarks, landmarks):
+    """
     :param data: [3, 256, 256] RGB
     :param heatmap: [13, 64, 64]
     :param widehatHeatmap: [13, 64, 64]
-    :return: [64 * 4, 64 * 7, 1]
+    :param pred_fake_landmarks: (196,)
+    :param pred_real_landmarks: (196,)
+    :param landmarks: (196,)
+    :return: fig: (256*3, 256)
     """
-    data = np.mean(cv2.resize(np.moveaxis(data, 0, 2), (64, 64)), axis=2, keepdims=False, dtype=np.float32)
+    data = np.mean(np.moveaxis(data, 0, 2), axis=2, keepdims=False, dtype=np.float32)
+    data_land_fake = plot_land(data, pred_fake_landmarks)
+    data_land_real = plot_land(data, pred_real_landmarks)
+    data_land_truth = plot_land(data, landmarks)
+    fig = np.concatenate([data_land_fake, data_land_real, data_land_truth], axis=1)
 
-    heatmap = np.moveaxis(heatmap, 0, 2).copy()
-    widehatHeatmap = np.moveaxis(widehatHeatmap, 0, 2).copy()
-
-    line1 = np.concatenate([data] + [heatmap[..., i] for i in range(6)], axis=1)
-    line2 = np.concatenate([heatmap[..., i + 6] for i in range(7)], axis=1)
-    line3 = np.concatenate([data] + [widehatHeatmap[..., i] for i in range(6)], axis=1)
-    line4 = np.concatenate([widehatHeatmap[..., i + 6] for i in range(7)], axis=1)
-
-    fig = np.concatenate([line1, line2, line3, line4], axis=0)
-
-    return fig * 256
+    return fig
