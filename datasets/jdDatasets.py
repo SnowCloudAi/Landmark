@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 import numpy as np
+from glob import glob
 from transform import Transform
 import cv2
 import torch
@@ -10,7 +11,6 @@ class jdDataset(Dataset):
     def __init__(self):
         super().__init__()
         self.COMPONETS = self.jdComponent()
-
 
     def __getitem__(self, index):
         pass
@@ -40,11 +40,11 @@ class jdDataset(Dataset):
         lower_upper_lip = [100 + i for i in range(4)] + [96, ]
         lower_lower_lip = [90 + i for i in range(6)] + [84, ]
 
-        component = [facial_outer_contour, left_eyebrow, right_eyebrow, nose_bridge, nose_boundary]
-        component += [left_upper_eyelid, right_upper_eyelid, left_lower_eyelid, right_lower_eyelid]
-        component += [upper_upper_lip, upper_lower_lip, lower_upper_lip, lower_lower_lip]
+        component = [facial_outer_contour, lower_lower_lip, lower_upper_lip, upper_lower_lip, upper_upper_lip]
+        component += [nose_boundary, nose_bridge, left_lower_eyelid, left_upper_eyelid, left_eyebrow]
+        component += [right_lower_eyelid, right_upper_eyelid, right_eyebrow]
         return component
-    
+
     def drawGaussian(self, landmark):
         landmark = landmark / 4
         heatmap = np.zeros((len(self.COMPONETS), 64, 64), dtype=np.uint8)
@@ -53,9 +53,9 @@ class jdDataset(Dataset):
         for i in range(len(self.COMPONETS)):
             for j in range(len(self.COMPONETS[i]) - 1):
                 p1 = self.COMPONETS[i][j]
-                p2 = self.COMPONETS[i][j+1]
+                p2 = self.COMPONETS[i][j + 1]
                 heatmap[i] = cv2.line(heatmap[i], (int(landmark[p1, 0]), int(landmark[p1, 1])),
-                 (int(landmark[p2, 0]), int(landmark[p2, 1])), (255), 1, )
+                                      (int(landmark[p2, 0]), int(landmark[p2, 1])), (255), 1, )
 
             heatmap[i] = cv2.distanceTransform(255 - heatmap[i], cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
         heatmap_ = np.exp(-1.0 * heatmap ** 2 / (2.0 * sigma ** 2))
