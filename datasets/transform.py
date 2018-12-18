@@ -22,6 +22,15 @@ match_parts_98 = np.array(
      [76, 82], [77, 81], [78, 80], [87, 83], [86, 84],  # outer mouth
      [88, 92], [89, 91], [95, 93]])
 
+match_parts_106 = np.array(
+    [[0, 32], [1, 31], [2, 30], [3, 29], [4, 28], [5, 27], [6, 26], [7, 25], [8, 24], [9, 23], [10, 22],
+     [11, 21],
+     [12, 20], [13, 19], [14, 18], [15, 17],  # outline
+     [33, 46], [34, 45], [35, 44], [36, 43], [37, 42], [41, 47], [40, 48], [39, 49], [38, 50],  # eyebrow
+     [55, 65], [66, 79], [67, 78], [68, 77], [69, 76], [70, 75], [71, 82], [72, 81], [73, 80], [74, 83],
+     [104, 105], [56, 64], [57, 63], [58, 62], [59, 61], [84, 90], [85, 89], [86, 88], [96, 100], [97, 99],
+     [95, 91], [94, 92], [103, 102]])
+
 
 def rotatepoints(landmarks, center, rot):
     center_coord = np.zeros_like(landmarks)
@@ -211,11 +220,13 @@ class Transform(object):
 
     def flippoints(self, landmarks, width):
         nPoints = landmarks.shape[0]
-        assert nPoints in (68, 98), 'flip {} nPoints is not supported'
+        assert nPoints in (68, 98, 106), 'flip {} nPoints is not supported'
         if nPoints == 98:
             pairs = match_parts_98
-        else:
+        elif nPoints == 68:
             pairs = match_parts_68
+        else:
+            parirs = match_parts_106
         flandmarks = landmarks.copy()
 
         for pair in pairs:
