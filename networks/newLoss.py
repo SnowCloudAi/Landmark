@@ -2,7 +2,7 @@ import torch
 import math
 
 
-def wingLoss(pred, target, w, epsilon):
+def wingLoss(pred, target, w=10, epsilon=2):
     w, epsilon = torch.tensor([w]).cuda(), torch.tensor([epsilon]).cuda()
     dis = torch.abs_(pred - target)
     isSmall = dis < w
