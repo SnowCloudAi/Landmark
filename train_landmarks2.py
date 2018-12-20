@@ -15,6 +15,7 @@ from tqdm import tqdm
 from networks.net import BoundaryHeatmapEstimator, BoundaryHeatmapEstimatorwithMPL, \
     DiscriL2, LandmarksRegressor, Discriminator
 from networks.newNet import FAN
+from networks.newLoss import wingLoss
 from lab_args import parse_args
 from shutil import rmtree
 import horovod.torch as hvd
@@ -114,7 +115,7 @@ def main():
             loss_landmarks_real = landmarkLoss(pred_landmarks_real, landmarks)
             
             # Calc loss and Get the model grad (range from 0 to 1)
-            loss = loss_landmarks_fake
+            loss = loss_landmarks_fake + loss_landmarks_real
             loss.backward()
             
             # Setup grad_scale
@@ -123,7 +124,6 @@ def main():
             
             # Update model
             optimizer.step()
-
             
             # The 8 cards average output
             average_loss = hvd.allreduce(loss, True, name='loss_landmarks')
@@ -140,12 +140,12 @@ def main():
                 #     writer.add_image('Image')
                 pic = figPicture(mixup_data[0].cpu().detach().numpy(), mixup_heatmap[0].cpu().detach().numpy(),
                                  pred_heatmaps[3][0].cpu().detach().numpy())
-                plt.imsave(f'/home/ubuntu/pic/par5/debug.png', pic)
+                plt.imsave(f'/home/ubuntu/pic/par10/debug.png', pic)
                 
                 pic = figPicture2Land2(mixup_data[0].cpu().detach().numpy(), mixup_heatmap[0].cpu().detach().numpy(),
                                  pred_heatmaps[3][0].cpu().detach().numpy(), pred_landmarks_fake[0].cpu().detach().numpy().astype(int), 
                                  pred_landmarks_real[0].cpu().detach().numpy().astype(int), landmarks[0].cpu().detach().numpy().astype(int))
-                plt.imsave(f'/home/ubuntu/pic/par5/debug_lands.png', pic)
+                plt.imsave(f'/home/ubuntu/pic/par10/debug_lands.png', pic)
                 
         if hvd.rank() is 0:
             pbar.close()
@@ -159,11 +159,11 @@ def main():
             if epoch % 4 is 3:
                 pic = figPicture(mixup_data[0].cpu().detach().numpy(), mixup_heatmap[0].cpu().detach().numpy(),
                                  pred_heatmaps[3][0].cpu().detach().numpy())
-                plt.imsave(f'/home/ubuntu/pic/par5/bounds_{epoch}.png', pic)
+                plt.imsave(f'/home/ubuntu/pic/par10/bounds_{epoch}.png', pic)
                 pic = figPicture2Land2(mixup_data[0].cpu().detach().numpy(), mixup_heatmap[0].cpu().detach().numpy(),
                                  pred_heatmaps[3][0].cpu().detach().numpy(), pred_landmarks_fake[0].cpu().detach().numpy().astype(int), 
                                  pred_landmarks_real[0].cpu().detach().numpy().astype(int), landmarks[0].cpu().detach().numpy().astype(int))
-                plt.imsave(f'/home/ubuntu/pic/par5/lands_{epoch}.png', pic)
+                plt.imsave(f'/home/ubuntu/pic/par10/lands_{epoch}.png', pic)
     
     if hvd.rank() is 0:
         # Verification per epoch
@@ -201,13 +201,14 @@ if __name__ == '__main__':
     
     # Load pretrained Model
     if hvd.rank() == 0:
-        model_b = torch.load('/home/ubuntu/param/2-model-200.pkl').cuda()
-        model_l = torch.load('/home/ubuntu/param/5-model-landmark-200.pkl').cuda()
+        model_b = torch.load('/home/ubuntu/param/9-model-boundary-200.pkl').cuda()
+        model_l = torch.load('/home/ubuntu/param/8-model-landmark-200.pkl').cuda()
     hvd.broadcast_parameters(model_b.state_dict(), root_rank=0)
     hvd.broadcast_parameters(model_l.state_dict(), root_rank=0)
 
     # Optimizer
-    optimizer = optim.Adam(model_l.parameters(), lr=args.lr_base[1], betas=args.beta, weight_decay=args.wd)
+    # optimizer = optim.Adam(model_l.parameters(), lr=args.lr_base[1], betas=args.beta, weight_decay=args.wd)
+    optimizer = optim.SGD(model_l.parameters(), lr=args.lr_base[1], momentum=0.9, weight_decay=args.wd)
     optimizer = hvd.DistributedOptimizer(optimizer, named_parameters=model_l.named_parameters())
 
     # Main function
