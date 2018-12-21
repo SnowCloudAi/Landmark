@@ -1,23 +1,52 @@
 from torch.utils.data import Dataset
 import numpy as np
-from glob import glob
 from transform import Transform
 import cv2
 import torch
+from glob import glob
 
 
 class jdDataset(Dataset):
 
     def __init__(self):
         super().__init__()
+        
+        image_paths = sorted(glob('/home/ubuntu/FaceDatasets/jd/Training_data/*/picture/*.jpg'))
+        landmarks_paths = sorted(glob('/home/ubuntu/FaceDatasets/jd/Training_data/*/landmark/*.txt'))
+
+        for i in range(len(image_paths)):
+            assert image_paths[i].split('/')[-1].split('.')[0] == landmarks_paths[i].split('/')[-1].split('.')[0], 'CHECK ERROR'
+
+        self.image_paths = image_paths
+        self.landmarks_paths = landmarks_paths
+        assert len(self.image_paths) == len(self.landmarks_paths), 'CHECK ERROR'
+
         self.COMPONETS = self.jdComponent()
+        self.transform = Transform(degrees=30, scale=(0.75, 1.0), translate=(-0.05, 0.05), colorjitter=0.3, out_size=256, flip=True)
 
     def __getitem__(self, index):
-        pass
+        """
+            1. 从硬盘中用cv2读取BGR图片，转换成RGB公式
+            2. 将landarmk的[196]转换成[92,2]的格式
+            3. 送入T之后生成图片的tensor和numpy的landmark
+            4. 制作boundary的heatmap（先resize再描点） np.where去除小于0的点，和大于256的点
+        """
+        img = cv2.imread(self.image_paths[index])
+        landmark =  np.genfromtxt(self.landmarks_paths[index], skip_header=1).astype('float32') # float32 (nPoints, 2)
+
+        img_tensor, landmark = self.transform(img, landmark)
+
+        landmark_ = np.where(landmark > 0, landmark, 0.)
+        landmark_ = np.where(landmark_ < 256, landmark_, 256.)
+
+        heatmap = self.drawGaussian(landmark_)
+
+        landmark = landmark.flatten()
+        return img_tensor, torch.from_numpy(heatmap).float(), torch.from_numpy(landmark).float()
 
     def __len__(self):
-        return 11393
-
+        return len(self.image_paths)
+    
     def jdComponent(self):
         """
             eyebrow: 眉毛
@@ -53,18 +82,12 @@ class jdDataset(Dataset):
         for i in range(len(self.COMPONETS)):
             for j in range(len(self.COMPONETS[i]) - 1):
                 p1 = self.COMPONETS[i][j]
-                p2 = self.COMPONETS[i][j + 1]
+                p2 = self.COMPONETS[i][j+1]
                 heatmap[i] = cv2.line(heatmap[i], (int(landmark[p1, 0]), int(landmark[p1, 1])),
-                                      (int(landmark[p2, 0]), int(landmark[p2, 1])), (255), 1, )
+                 (int(landmark[p2, 0]), int(landmark[p2, 1])), (255), 1, )
 
             heatmap[i] = cv2.distanceTransform(255 - heatmap[i], cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
         heatmap_ = np.exp(-1.0 * heatmap ** 2 / (2.0 * sigma ** 2))
         heatmap_ = np.where(heatmap < (num * sigma), heatmap_, 0)
-        for i in range(13):
-            maxVal = heatmap_[:, :, i].max()
-            minVal = heatmap_[:, :, i].min()
-            if maxVal == minVal:
-                heatmap_[:, :, i] = 0
-            else:
-                heatmap_[:, :, i] = (heatmap_[:, :, i] - minVal) / (maxVal - minVal)
+
         return heatmap_
