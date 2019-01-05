@@ -23,10 +23,17 @@
 * 正常姿态的人脸已经基本可以正常输出，但特殊姿态人脸尚不完美，可能是特殊姿态人脸数据较少的原因
 * 这里使用SGD(momentum)比较好
 
+## 2019.1.5.更新：
+* 卡在boundary上，以及hard example对训练的影响
+* 大姿态以及遮挡的结果最差，这些情况下boundary的输出不够好
+* loss函数L2对异常值很敏感，L1 loss或Wingloss效果更好
+* 人脸轮廓loss比较大，容易受胡子，角度等因素影响
+* plan：加强boundary的训练，hard example mining
+
 ![image](image/debug_lands.png)
 
 (fake boundary, real boundary, ground truth.)
 
 ## CED curves
 
-![image](image/ced_cruve_all.jpeg)
+![image](image/test_ced_all.jpg)
